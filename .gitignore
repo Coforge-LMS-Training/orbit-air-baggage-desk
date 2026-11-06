@@ -229,3 +229,4 @@ __pycache__/
 *.db-journal
 *.sqlite3-journal
 CLAUDE.local.md
+.claude/settings.local.json
