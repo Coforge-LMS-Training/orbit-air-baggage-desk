@@ -19,8 +19,8 @@ Response deadlines by tier: **gold 4 hours**, **silver 24 hours**, **standard 72
 
 ## Agent Log
 
-After each branch, add an entry under `README.md` → `## Agent Log` with:
-- the exact prompt used
+When a branch's work is complete, add its entry under `README.md` → `## Agent Log` in the same final commit, before the user pushes, with:
+- the exact prompt used, verbatim; if it relies on earlier context, also note what it referred to
 - the Claude Code mode
 - what Claude did
 - what the user checked or changed
