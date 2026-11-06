@@ -107,23 +107,25 @@ Together these cover all eight commands: file, list, assign, resolve, close, esc
 | Rollback test passes even without a transaction (false confidence) | Write claim update first, then history; make history fail; also check once that removing the `with conn:` makes the test fail. |
 | Agent edits tests to make them pass | Tests are the spec; Stop hook runs pytest; run `git diff tests/` before each commit and revert unexplained changes. |
 | Prompt injection in seed note / `.env` leak | Deny rule on reading `.env`; treat claim notes as data; `.env` in `.gitignore`, fake key only; check `git log --all -- .env` is empty. |
-| Stop hook (pytest, exit 2 on failure) keeps sending Claude back to work during the red-test step, when failing tests are expected | Hook stays in the committed `.claude/settings.json`, but is switched off locally only while tests are meant to be red (see section 7, step 4). |
+| Stop hook (pytest, exit 2 on failure) would block Claude while tests are meant to be red | The hook only fires when Claude ends its turn. Claude writes the tests, sees them fail, commits them, and implements in one run, so the hook only ever sees the final green state (section 7, step 4). |
+| Wrong tests get baked into the code in a one-run flow | The test list is approved in plan mode before any test is written, and I re-run the test commit myself afterwards. |
 | `--now` misplaced after the command, or questionary blocking non-interactive runs | Define `--now` on the top-level argparse parser; all required commands take arguments directly; questionary only used when args are missing and a TTY is present. |
 
 ## 7. Workflow and order
 1. Setup: `.gitignore` (`.venv`, `.env`, `*.db`/`*.sqlite3`, `__pycache__`, `CLAUDE.local.md`, `.claude/settings.local.json`), `CLAUDE.md`, `.claude/settings.json` (deny `.env` read + Stop hook running pytest, exit 2 on failure), uv env with pytest + ruff, local uncommitted `.env`.
 2. **Commit PLAN.md before any commit touching `db.py`, `claims.py`, or `main.py`.**
 3. For each of the four branches, in order:
-   1. Create branch from `main`.
-   2. Commit failing tests → run `uv run pytest` and confirm they fail.
-   3. Commit feature code in small logical commits → tests pass, `ruff check` clean.
-   4. Review the diff myself; add an Agent Log entry in README.
-   5. I push, open the PR (title starts with branch name), and merge on GitHub myself.
-4. **Stop hook during red-test steps.** The committed `.claude/settings.json` always keeps the deny rule and the Stop hook. While writing a branch's tests (where red is expected):
-   - add `"disableAllHooks": true` to `.claude/settings.local.json` (git-ignored, never committed), start a fresh session, write tests, run `uv run pytest` myself to see them fail, commit them;
-   - remove that local override, start a new session, then implement — now the hook keeps Claude working until tests pass;
-   - alternative: write/commit the tests myself without asking Claude to stop on red;
-   - after setup, verify the hook once: with a deliberately failing test, confirm Claude is sent back (exit 2); with all green, confirm it stops normally. Record this in Setup Check.
+   1. Move the Linear issue to In Progress; create the branch from the updated `main` with its exact name.
+   2. **Plan mode:** give Claude the Linear issue; Claude proposes the exact tests (name, input, expected result). I check them against the issue and approve.
+   3. **One run:** Claude writes the tests → runs `uv run pytest` and shows them failing → commits the tests → writes the feature code in small commits → tests pass and `ruff check` is clean.
+   4. **My verification:**
+      - `git log --oneline main..HEAD` shows the test commit before the feature commits.
+      - `git checkout <test-commit> -- . && uv run pytest` shows red; `git checkout HEAD -- . && uv run pytest` shows green.
+      - `git diff <test-commit> HEAD -- tests/` is empty, so the tests were not changed after they were committed.
+      - I read the full diff.
+   5. Claude drafts the Agent Log entry (exact prompts, mode, what it did); I add what I checked or corrected.
+   6. I push, open the PR (title starts with the branch name, links the Linear issue, says what changed and how it was checked), merge on GitHub, and move the issue to Done.
+4. **Why the Stop hook never needs switching off:** it only fires when Claude ends its turn. In the one-run flow the red phase happens mid-turn, so the hook only ever sees the final state, and it blocks Claude from finishing until that state is green. If a run is interrupted while tests are red, I press Esc and decide the next step myself.
 5. Claude never pushes, publishes, or creates/merges remote PRs. Linear issues (project "Orbit Air Baggage Desk", one per branch, titled with the branch name, each with problem / actual / expected / done when / constraint) are created by me.
 
 ## 8. README evidence (filled in as work happens, never invented)
