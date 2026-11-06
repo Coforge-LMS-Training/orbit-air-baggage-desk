@@ -46,7 +46,11 @@ How the Claude Code configuration in `.claude/settings.json` was confirmed. Each
 
 ### feature/initialize (setup)
 
-- **Prompt:** `do the reqs for init branch`
+- **Prompt (verbatim):** `do the reqs for init branch`
+- **What the prompt relied on:** The prompt was short on purpose because the scope was already written down:
+  - `PLAN.md` §7 step 1 lists the setup items: `.gitignore`, `CLAUDE.md`, a deny rule on `.env` plus a Stop hook running pytest with exit 2 on failure, a uv environment with pytest and ruff, and a local `.env` that is never committed.
+  - In the same session, Claude had already compared that list with the repo and reported what was missing.
+  - Claude turned the prompt into a written plan in plan mode. The plan listed the exact files, the hook script, the commits and the verification steps, and the user approved it before any file changed.
 - **Mode:** plan mode for the plan (approved by the user), then auto mode for the edits
 - **What Claude did:**
   - Added the Stop hook script `.claude/hooks/run-tests.sh`. It runs pytest and exits 2 on failure. Exit 5 (no tests collected) counts as a pass so the setup branch isn't blocked.
